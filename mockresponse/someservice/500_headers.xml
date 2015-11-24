@@ -1,0 +1,3 @@
+http.status=500
+delay=10000
+MULE_CORRELATION_ID=500

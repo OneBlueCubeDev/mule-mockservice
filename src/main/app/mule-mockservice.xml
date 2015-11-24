@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:https="http://www.mulesoft.org/schema/mule/https"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.7.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/https http://www.mulesoft.org/schema/mule/https/current/mule-https.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <sub-flow name="ReturnDefaultData">
+        <set-property propertyName="routedviaexception" value="true" doc:name="Set routedviaexception"/>
+        <set-property propertyName="${fileId}" value="${fileId}" doc:name="Set ${fileId} as default"/>
+        <flow-ref name="ReturnMockData" doc:name="Call ReturnMockData"/>
+    </sub-flow>
+    <sub-flow name="Return500Data">
+        <set-property propertyName="${fileId}" value="500" doc:name="Set ${fileId} as 500"/>
+        <flow-ref name="ReturnMockData" doc:name="Call ReturnMockData"/>
+    </sub-flow>
+    <sub-flow name="ReturnMockData">
+        <component doc:name="Return mock message">
+            <singleton-object class="com.org.rak.ReturnMockMessage">
+                <property key="mockResponseFolder" value="${mockresponse.folder.path}"/>
+                <property key="fileId" value="${fileId}"/>
+            </singleton-object>
+        </component>
+        <component class="com.org.rak.SimulateDelayedResponse" doc:name="Simulate delay in response"/>
+    </sub-flow>
+    <flow name="mainFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="${http.path}" doc:name="HTTP"/>
+        <flow-ref name="ReturnMockData" doc:name="Call ReturnMockData"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+        <catch-exception-strategy when="#[exception.causeMatches('java.io.FileNotFoundException')]" doc:name="Catch FileNotFound Exception">
+            <logger message="FileNotFound Exception Occurred in Mock Service - HTTP Endpoint" level="INFO" doc:name="Logger"/>
+            <choice doc:name="IsRouted From Exception">
+                <when expression="#[message.outboundProperties['routedviaexception'] == &quot;true&quot;l]">
+                        <flow-ref name="Return500Data" doc:name="Call Return500Data"/>
+                </when>
+                <otherwise>
+                        <flow-ref name="ReturnDefaultData" doc:name="Call ReturnDefaultData"/>
+                </otherwise>
+            </choice>
+        </catch-exception-strategy>
+        <catch-exception-strategy doc:name="Catch All Other Exceptions">
+            <logger message="General Exception Occurred in Mock Service - HTTP Endpoint" level="INFO" doc:name="Failure"/>
+            <set-variable variableName="routedviaexception" value="true" doc:name="Set routedviaexception"/>
+                <flow-ref name="Return500Data" doc:name="Call Return500Data"/>
+        </catch-exception-strategy>
+        </choice-exception-strategy>
+
+    </flow>
+
+</mule>
