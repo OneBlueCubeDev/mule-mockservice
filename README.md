@@ -66,6 +66,9 @@ This solution was built with below configuration. However it should work fine wi
 2.  Mule 3.7.1   
   
   _Note_: If using mule < 3.7 you may have to modify the http connector to older configuration.
- 
+
+###
+MockService blog: http://rumanblogs.com/2015/12/12/mock-your-dependency/
+  
 ### Contributing
 All pull requests are welcome
